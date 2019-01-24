@@ -35,6 +35,64 @@ static def populateVersionMap(ArrayList<File> pomList) {
     return versionMap
 }
 
+static def findVersionsOnNexus (Map versionMap) {
+    
+    Map<String, Set<String>> nexusSet = new HashMap<String, Set<String>>()
+
+    List<String> RepoNames = []
+    
+    versionMap.each {
+
+        def nexusApiUrlRequest = new URL("http://localhost:8081/service/rest/v1/search?name=${it.key}").openConnection()
+        def nexusApiRC = nexusApiUrlRequest.getResponseCode()
+        def responseOutput = nexusApiUrlRequest.getInputStream().getText()
+        if (nexusApiRC.equals(200)) {
+            println "Search returned values"
+        } else {
+            println "Error: ${nexusApiUrlRequest.getResponseCode()}"
+            return 1
+        }
+        def json = new JsonSlurper().parseText(responseOutput)
+        RepoNames.addAll(json.items)
+        nexusApiUrlRequest.disconnect()
+
+    }
+
+    //Removed loop within loop
+    RepoNames.each {
+
+        String version = it.version
+        String lib = it.name
+
+        println("${lib}:${version}")
+
+        if (versionMap.containsKey(lib)){
+
+            //Used treeset to guarantee insertion order, order comes from API return
+
+            Set set = new TreeSet<String>()
+            set.addAll(versionMap.get(lib))
+            set.add(version)
+            versionMap.replace(lib, set)
+
+        } else {
+
+            def set = new HashSet<String>()
+            set.add(version)
+            versionMap.put(lib, version)
+
+        }
+
+
+
+        println("VersionMap: ${versionMap.toString()}")
+
+    }
+
+    return nexusSet
+    
+}
+
 //Paramiterise for NPM repos
 static def listRepositorys(){
 
@@ -54,7 +112,8 @@ static def listRepositorys(){
     Map<String, Set> versionMap = new HashMap<String, Set>()
 
     println("RepoNames: ${RepoNames.toString()}")
-  RepoNames.each {
+
+    RepoNames.each {
 
       String lib = ""
       String version = ""
@@ -86,8 +145,8 @@ static def listRepositorys(){
         }
 
       println("VersionMap: ${versionMap.toString()}")
-    
-  }
+
+    }
 
     println("Edited VersionMap: ${versionMap.toString()}")
 
@@ -145,9 +204,12 @@ static void main(String[] args) {
 
     PomList = populatePomList()
     BuildVersionMap = populateVersionMap(PomList)
-    RepoNames = listRepositorys()
-    ComparedDependencies = compareToNexus(BuildVersionMap, RepoNames)
+//    RepoNames = listRepositorys()
+//    ComparedDependencies = compareToNexus(BuildVersionMap, RepoNames)
+    ComparedDependencies = findVersionsOnNexus(BuildVersionMap)
     jsonText = urbancodeFileWriter(BuildVersionMap, ComparedDependencies)
+
+    println(jsonText.toPrettyString())
 
     File file = new File("./file")
     file.bytes = []
