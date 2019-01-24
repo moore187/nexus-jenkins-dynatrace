@@ -1,8 +1,8 @@
 import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 
-def environment = "TESTING2"// = p:component.environment
-def url = "https://yey08400.live.dynatrace.com/api/v1/events/"// = p:url
+def environment = "Additional Test"// = p:component.environment
+def url = "https://vks08978.live.dynatrace.com/api/v1/events/"// = p:url
 
 def post = new URL("${url}")
 
@@ -16,7 +16,7 @@ println(json.toPrettyString())
 
 conn.setDoOutput(true)
 conn.setRequestMethod("GET")
-conn.setRequestProperty("Authorization", "API-Token zAZMjosmTKmk5YUQr1ObC")
+conn.setRequestProperty("Authorization", "API-Token _70dUpZ-QHy4erU9IzdKh")
 conn.setRequestProperty("Content-Type", "application/json")
 conn.getOutputStream().write(json.toPrettyString().getBytes())
 

@@ -1,4 +1,5 @@
 import groovy.io.FileType
+import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 
 static def populatePomList() {
@@ -9,11 +10,13 @@ static def populatePomList() {
       pomList << file
     }
     }
+    println("PomList: ${pomList.toString()}")
     return pomList
 }
 
 
 static def populateVersionMap(ArrayList<File> pomList) {
+
     def versionMap = [:]
     pomList.each {
     def currentPom = new File(it.toString())
@@ -28,11 +31,14 @@ static def populateVersionMap(ArrayList<File> pomList) {
       }
     }
     }
+    println("VersionMap: ${versionMap.toString()}")
     return versionMap
 }
 
+//Paramiterise for NPM repos
 static def listRepositorys(){
-    def nexusApiUrlRequest = new URL("http://nexus:8081/service/rest/v1/assets?repository=maven-releases").openConnection()
+
+    def nexusApiUrlRequest = new URL("http://localhost:8081/service/rest/v1/assets?repository=maven-releases").openConnection()
     def nexusApiRC = nexusApiUrlRequest.getResponseCode()
     def responseOutput = nexusApiUrlRequest.getInputStream().getText()
     if (nexusApiRC.equals(200)){
@@ -47,47 +53,103 @@ static def listRepositorys(){
     nexusApiUrlRequest.disconnect()
     Map<String, Set> versionMap = new HashMap<String, Set>()
 
+    println("RepoNames: ${RepoNames.toString()}")
   RepoNames.each {
 
-    if (it.path.contains(".jar") && !it.path.contains(".sha1")) {
+      String lib = ""
+      String version = ""
+      println("Current RepoNames Value: ${it.toString()}")
+        if (it.path.contains(".jar") && !it.path.contains(".sha1")) {
 
-      String path = new JsonSlurper().parseText(it).path
-      String version = path.split('/')[2]
-      String lib = path.split("/")[3].substring(0, path.split("/")[3].indexOf("."))
+          String path = it["downloadUrl"]
+            println(path.split("/"))
+          version = path.split('/')[7]
+          lib = path.split("/")[8].substring(0, path.split("/")[8].indexOf("-"))
 
-    }
+            if (versionMap.containsKey(lib)){
 
-  if (versionMap.contains(lib)){
+                //Make sure version are sorted
 
-    HashSet set = versionMap.get(key)
-    set.add(version)
-    versionMap.replace(lib, set)
+                Set set = new HashSet<String>()
+                set.addAll(versionMap.get(lib))
+                set.add(version)
+                versionMap.replace(lib, set)
 
-  } else {
+            } else {
 
-    def set = new HashSet<String>()
-    set.add(version)
-    versionMap.add(lib, set)
+                def set = new HashSet<String>()
+                set.add(version)
+                versionMap.put(lib, version)
+
+            }
+
+        }
+
+      println("VersionMap: ${versionMap.toString()}")
     
   }
-  //Turn RepoNames into a map of name to version
-  return RepoNames
+
+    println("Edited VersionMap: ${versionMap.toString()}")
+
+  return versionMap
   
 }
 
-static def compareToNexus(Map<String,Object> buildVersionMap, List<String> repoNames) {
-    buildVersionMap.each{ k,v ->
-    println "${k}:${v}"
+static def compareToNexus(Map<String,Object> buildVersionMap, Map<String, Set> repoNames) {
+
+    Set<String> nexusKeySet = new HashSet<String>(repoNames.keySet())
+    Set<String> pomKeySet = new HashSet<String>(buildVersionMap.keySet())
+
+    println("Nexus Key Set: ${nexusKeySet.toString()}")
+    println("POM Key Set: ${pomKeySet.toString()}")
+
+    nexusKeySet.retainAll(pomKeySet)
+    Map<String, String> returnMap = new HashMap<>()
+
+    nexusKeySet.each {
+
+        if (repoNames.get(it)) returnMap[it] = (String) "Available Versions: ${repoNames.get(it).toString()}"
     }
+
+    println("returnMap: ${returnMap.toString()}")
+    return returnMap
+
+}
+
+static def urbancodeFileWriter(Map<String,Object> buildVersionMap, Map<String, String> repoNames) {
+
+    def jsonText = new File('./file').getText()
+    def slurper = new JsonSlurper().parseText(jsonText)
+    def json = new JsonBuilder(slurper)
+
+    // Change format to lib: Current=x, Latest=y
+
+    buildVersionMap.each {
+
+        json.content.customProperties.putAt("${it.key}", "${it.value}")
+
+    }
+
     repoNames.each {
-    println it
+
+        json.content.customProperties.putAt("Nexus ${it.key}", "${it.value}")
+
     }
+
+    println("JSON: ${json.toPrettyString()}")
+    return json
 
 }
 
 static void main(String[] args) {
+
     PomList = populatePomList()
     BuildVersionMap = populateVersionMap(PomList)
     RepoNames = listRepositorys()
     ComparedDependencies = compareToNexus(BuildVersionMap, RepoNames)
+    jsonText = urbancodeFileWriter(BuildVersionMap, ComparedDependencies)
+
+    File file = new File("./file")
+    file.bytes = []
+    file << jsonText
 }
