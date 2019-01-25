@@ -93,6 +93,7 @@ static def findVersionsOnNexus (Map versionMap) {
     
 }
 
+// Possible usage: to further refine list of libraries returned from `findVersionsOnNexus (Map versionMap)` method. 
 //static def compareToNexus(Map<String,Object> buildVersionMap, Map<String, Set> repoNames) {
 //
 //    Set<String> nexusKeySet = new HashSet<String>(repoNames.keySet())
