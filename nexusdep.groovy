@@ -93,67 +93,6 @@ static def findVersionsOnNexus (Map versionMap) {
     
 }
 
-//Paramiterise for NPM repos
-//static def listRepositorys(){
-//
-//    def nexusApiUrlRequest = new URL("http://localhost:8081/service/rest/v1/assets?repository=maven-releases").openConnection()
-//    def nexusApiRC = nexusApiUrlRequest.getResponseCode()
-//    def responseOutput = nexusApiUrlRequest.getInputStream().getText()
-//    if (nexusApiRC.equals(200)){
-//    println "http request successful. Repo Names will be populated"
-//    }
-//    else {
-//    println "http request failed. Please check the Nexus API"
-//    return 1
-//    }
-//    def json = new JsonSlurper().parseText(responseOutput)
-//    List<String> RepoNames = json.items
-//    nexusApiUrlRequest.disconnect()
-//    Map<String, Set> versionMap = new HashMap<String, Set>()
-//
-//    println("RepoNames: ${RepoNames.toString()}")
-//
-//    RepoNames.each {
-//
-//      String lib = ""
-//      String version = ""
-//      println("Current RepoNames Value: ${it.toString()}")
-//        if (it.path.contains(".jar") && !it.path.contains(".sha1")) {
-//
-//          String path = it["downloadUrl"]
-//            println(path.split("/"))
-//          version = path.split('/')[7]
-//          lib = path.split("/")[8].substring(0, path.split("/")[8].indexOf("-"))
-//
-//            if (versionMap.containsKey(lib)){
-//
-//                //Make sure version are sorted
-//
-//                Set set = new HashSet<String>()
-//                set.addAll(versionMap.get(lib))
-//                set.add(version)
-//                versionMap.replace(lib, set)
-//
-//            } else {
-//
-//                def set = new HashSet<String>()
-//                set.add(version)
-//                versionMap.put(lib, version)
-//
-//            }
-//
-//        }
-//
-//      println("VersionMap: ${versionMap.toString()}")
-//
-//    }
-//
-//    println("Edited VersionMap: ${versionMap.toString()}")
-//
-//  return versionMap
-//
-//}
-//
 //static def compareToNexus(Map<String,Object> buildVersionMap, Map<String, Set> repoNames) {
 //
 //    Set<String> nexusKeySet = new HashSet<String>(repoNames.keySet())
